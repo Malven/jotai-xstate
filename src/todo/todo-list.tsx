@@ -1,30 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMachine } from '@xstate/react';
 import { useAtomValue } from 'jotai';
 import { selectedPokemonAtom } from '../atoms/selectedPokemon-atom';
-import { getPokemons } from '../utils/api';
+import { pokemonsMachine } from '../machines/pokemonsMachine';
 import { SelectedPokemon } from './todo-selected';
 import { TodoListItem } from './toto-list-item';
 
 export const TodoList = () => {
+  const [state, send] = useMachine(pokemonsMachine, { devTools: true });
   const selectedPokemon = useAtomValue(selectedPokemonAtom);
 
-  const pokemonQuery = useQuery({
-    queryFn: getPokemons,
-    queryKey: ['pokemons'],
-  });
-
-  if (pokemonQuery.isLoading) {
+  if (state.matches('loading')) {
     return <div>Loading...</div>;
   }
 
-  if (pokemonQuery.isError) {
-    return <div>Error...</div>;
+  if (state.matches('error')) {
+    return (
+      <div>
+        Error...<button onClick={() => send('RETRY')}>Retry</button>
+      </div>
+    );
   }
 
   return (
     <div>
       <SelectedPokemon />
-      {pokemonQuery.data?.results.map((pokemon) => (
+      {state.context.pokemons?.map((pokemon) => (
         <TodoListItem key={pokemon.name} pokemon={pokemon} />
       ))}
       {selectedPokemon && (
